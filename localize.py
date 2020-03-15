@@ -52,9 +52,9 @@ sat_set = db_hs['sat']
 category_colors = ((0,0,255),(255,0,0),(0,255,0),(0,255,255))
 
 # loop over the image paths
-image_paths = paths.list_image(args["images"])
+image_paths = paths.list_images(args["images"])
 for img_id,imagePath in enumerate(image_paths):
-    print("{}/{} : {}",img_id.zfill(3),len(image_paths).zfill(3),image_path)
+    print("{} : {}".format(str(img_id).zfill(3),imagePath))
     name = imagePath.split("/")[-1].split(".")[0]
     # load the image and prepare it from description
     img_main = cv2.imread(imagePath)

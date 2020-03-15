@@ -5,4 +5,4 @@ conda activate imagesearch
 
 #python localize.py --images test_images_real --codebook output/vocab.cpickle --model output/model.cpickle
 
-python localize.py --images ../../data/drone_images/Camera --codebook output/vocab.cpickle --model output/model.cpickle
+python localize.py --images ../../data/drone_images/Other_Side --codebook output/vocab.cpickle --model output/model.cpickle

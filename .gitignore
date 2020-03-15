@@ -1,1 +1,13 @@
 *.pyc
+
+*.jpg
+*.jpeg
+*.JPG
+*.JPEG
+*.png
+
+*.zip
+
+output/
+output_detection/
+output_localization/

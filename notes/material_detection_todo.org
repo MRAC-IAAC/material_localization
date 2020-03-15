@@ -1,0 +1,12 @@
+* TODO
+** v001[0/6]
+- [ ] Even out image counts in training_set
+- [ ] Add 'None' Category
+- [ ] Annotate training_set
+- [ ] Annotate test_set for testing
+- [ ] Train hue and sat parameters against test_set
+- [ ] Scale hue influence based on sat
+- [ ] Localize based on overlapping squares
+- [ ] Try extracting hue/sat features too?
+- [ ] Apply marching squares to localizatoin output?
+
