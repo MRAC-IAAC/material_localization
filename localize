@@ -1,0 +1,8 @@
+#!/bin/bash
+
+source ~/anaconda3/etc/profile.d/conda.sh
+conda activate imagesearch
+
+#python localize.py --images test_images_real --codebook output/vocab.cpickle --model output/model.cpickle
+
+python localize.py --images ../../data/drone_images/Camera --codebook output/vocab.cpickle --model output/model.cpickle
