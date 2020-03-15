@@ -15,8 +15,7 @@ Descriptor Extraction uses the BRISK binary descriptor algorithm.
 To Use
 ------
 
-###
-Environment
+### Environment
 
 
 
@@ -52,6 +51,8 @@ This will write images with category colors to the 'output_localization' folder,
 
 Not these are currently not re-normalized, and will almost always be negative. 
 
+---
 
 Based on:
+
 Adrian Rosebrock, 'Content Based Image Retrieval' & 'Image Classification and Machine Learning', PyImageSearch
