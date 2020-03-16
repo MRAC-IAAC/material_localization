@@ -1,12 +1,14 @@
 * TODO
-** v001[0/6]
-- [ ] Even out image counts in training_set
+** v001[1/9]
+- [ ] Even out image counts in training_set, aim for ~200/category, with even mix between sources
 - [ ] Add 'None' Category
 - [ ] Annotate training_set
 - [ ] Annotate test_set for testing
 - [ ] Train hue and sat parameters against test_set
 - [ ] Scale hue influence based on sat
-- [ ] Localize based on overlapping squares
+- [X] Localize based on overlapping squares
 - [ ] Try extracting hue/sat features too?
 - [ ] Apply marching squares to localizatoin output?
+- [ ] Add utility scripts to repo
+- [ ] Adjust training / testing ratio of images in training script
 

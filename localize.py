@@ -9,12 +9,18 @@ from imutils.feature import FeatureDetector_create, DescriptorExtractor_create
 from imutils import paths
 
 import argparse
-import h5py
-import pickle
-import imutils
 import cv2
+import h5py
+import imutils
+import pickle
+import progressbar
+import time
 
 import numpy as np
+
+# Offsets for applying detection windows to subpatches
+dx = (0,1,2,0,1,2,0,1,2)
+dy = (0,0,0,1,1,1,2,2,2)
 
 # construct the argument parser and parse the arguments
 ap = argparse.ArgumentParser()
@@ -35,7 +41,7 @@ dad = DetectAndDescribe(detector, descriptor)
 idf = None
 
 # Load inverse document frequency file
-#idf = pickle.loads(open("output/idf.cpickle","rb").read())
+idf = pickle.loads(open("output/idf.cpickle","rb").read())
 
 # load the codebook vocabulary and initialize the bag-of-visual-words transformer
 vocab = pickle.loads(open(args["codebook"], "rb").read())
@@ -49,7 +55,9 @@ db_hs = h5py.File('output/hs-db.hdf5',mode='r')
 hue_set = db_hs['hue']
 sat_set = db_hs['sat']
 
-category_colors = ((0,0,255),(255,0,0),(0,255,0),(0,255,255))
+category_colors = ((0,0,255),(255,0,0),(0,255,0),(0,255,255),(0,0,0))
+
+start_time = time.time()
 
 # loop over the image paths
 image_paths = paths.list_images(args["images"])
@@ -73,8 +81,26 @@ for img_id,imagePath in enumerate(image_paths):
 
     prediction_list = []
 
-    win_size = 50
-    for (x,y,window_gray,window_hsv) in sliding_window_double(img_gray,img_hsv,stepSize=100,windowSize=(100,100)):
+    win_size = 100
+    cell_size = 50
+
+    img_width = img_gray.shape[1]
+    img_height = img_gray.shape[0]
+
+    patch_width = (img_width // cell_size) + 1
+    patch_height = (img_height // cell_size) + 1
+    patch_length = patch_width * patch_height
+
+    widgets = ["Localizing: ", progressbar.Percentage(), " ", progressbar.Bar(), " ", progressbar.ETA()]
+    pbar = progressbar.ProgressBar(maxval = patch_length,widgets=widgets).start()
+
+    patch_totals = np.zeros(shape=(patch_width,patch_height,5))
+
+    for (patch_id,(x,y,window_gray,window_hsv)) in enumerate(sliding_window_double(img_gray,img_hsv,stepSize=cell_size,windowSize=(win_size,win_size))):
+
+        patch_x = patch_id % patch_width
+        patch_y = patch_id // patch_width
+
         # Ensure patch size
         window_gray = imutils.resize(window_gray,width = 364)
         window_hsv = imutils.resize(window_hsv,width=364)
@@ -87,10 +113,13 @@ for img_id,imagePath in enumerate(image_paths):
         hist /= hist.sum()
         hist = hist.toarray()
 
+        # Be sure to shape properly to avoid wonkiness
+        if idf is not None:
+            idf = idf.reshape(1,-1)
+            hist *= idf
+
         # Predict based on gray patch
-        predictions = model.predict_proba(hist)
-        #print(predictions)
-        prediction = predictions[0]
+        prediction = model.predict_proba(hist)[0]
 
         # Extract hue and sat histograms
         (h,s,v) = cv2.split(window_hsv)
@@ -100,42 +129,55 @@ for img_id,imagePath in enumerate(image_paths):
         hist_sat /= hist_sat.sum()
 
         # Get hue and sat diff values
-        hue_diffs = np.zeros(4)
-        sat_diffs = np.zeros(4)
-        for i in range(4):
+        hue_diffs = np.zeros(5)
+        sat_diffs = np.zeros(5)
+        for i in range(5):
+            
             hue_slice = hue_set[i * 16 : i * 16 + 16]
             sat_slice = sat_set[i * 16 : i * 16 + 16]
 
             hue_diffs[i] = np.abs(hue_slice - hist_hue).sum()
             sat_diffs[i] = np.abs(sat_slice - hist_sat).sum()
 
-        #print(hue_diffs)
+        # Weight the predictions using hue and sat diffs
+        prediction -= hue_diffs * 0.5
+        prediction -= sat_diffs * 2.0
 
-        predictions -= hue_diffs * 0.5
-        predictions -= sat_diffs * 2.0
+        # Apply window predictions to patches
+        for i in range(9):
+            nx = patch_x + dx[i]
+            ny = patch_y + dy[i]
+            if nx >= patch_width or ny >= patch_height:
+                continue
+            patch_totals[nx,ny] += prediction
 
-        prediction_list.append(predictions)
+        pbar.update(patch_id)
+        
+    pbar.finish()
+    
+    # Loop through each patch, draw the prediction color and save to text file
+    for i in range(patch_length):
+        patch_x = i % patch_width
+        patch_y = i // patch_width
+        pixel_x = patch_x * cell_size
+        pixel_y = patch_y * cell_size
+        id = np.argmax(patch_totals[patch_x,patch_y])
+        prediction_list.append(patch_totals[patch_x,patch_y])
+        cv2.rectangle(squares_img,(pixel_x,pixel_y),(pixel_x + win_size,pixel_y + win_size),category_colors[id],-1)
 
-        id = np.argmax(prediction)
-        cv2.rectangle(squares_img,(x,y),(x + 100,y + 100),category_colors[id],-1)
-
-        #print(predictions)
-        #if (prediction[id] > 0.5):
-        #cv2.rectangle(squares_img,(x,y),(x + 100,y + 100),category_colors[id],-1)
-            #cv2.circle(display_img, (x + 25,y + 25),2,category_colors[id],-1)
-
+    # Draw the category colors onto the image
     cv2.addWeighted(squares_img,0.5,display_img,0.5,0,display_img)
-            
-    (kps,descs) = dad.describe(img_gray)
-    hist = bovw.describe(descs)
-    hist /= hist.sum()
-    hist = hist.toarray()
-    #print(model.predict(hist)[0])
 
+    # Display the image to the user
     #cv2.imshow("window",display_img)
+    #cv2.waitKey(0)
+
+    # Write the image and text file output
     cv2.imwrite("output_localization/" + imagePath.split("/")[-1],display_img)
     with open("output_localization/" + name + ".txt",'w') as f:
         for line in prediction_list:
             f.write(np.array2string(line) + "\n")
     
-    #cv2.waitKey(0)
+end_time = time.time()
+
+print("Localization of {} images took {} seconds".format(img_id + 1,int(end_time - start_time)))

@@ -22,11 +22,13 @@ args = vars(ap.parse_args())
 imagePaths = list(paths.list_images(args["dataset"]))
 random.shuffle(imagePaths)
 
-db_hs = h5py.File(args['hs_db'],mode='w')
-hue_set = db_hs.create_dataset("hue",(64,1),dtype='float')
-sat_set = db_hs.create_dataset("sat",(64,1),dtype='float')
+categories = ["brick","concrete","metal","wood","z_none"]
 
-categories = ["brick","concrete","metal","wood"]
+db_hs = h5py.File(args['hs_db'],mode='w')
+hue_set = db_hs.create_dataset("hue",(16 * len(categories),1),dtype='float')
+sat_set = db_hs.create_dataset("sat",(16 * len(categories),1),dtype='float')
+
+
 
 
 total_hue = {}
@@ -70,12 +72,12 @@ for i,c in enumerate(categories):
     hue_set[i * 16 : i * 16 + 16] = total_hue[c]
     sat_set[i * 16 : i * 16 + 16] =  total_sat[c]
     
-    print("")
-    print(c)
+    #print("")
+    #print(c)
     #print(total_hue[c].sum())
-    print(total_hue[c])
+    #print(total_hue[c])
 
     #print(total_sat[c].sum())
-    print(total_sat[c])
+    #print(total_sat[c])
     
 db_hs.close()

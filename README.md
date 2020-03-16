@@ -21,7 +21,8 @@ To Use
 
 ### Setup
 
-To process the input images and train the classifier, run 
+To process the input images and train the classifier, run
+
 `./setup_detector`
 
 Ensure that the 'dataset\_path' variable in the setup_detector script is set correctly for your system. 
