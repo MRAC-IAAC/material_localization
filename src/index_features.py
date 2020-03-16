@@ -1,3 +1,4 @@
+
 # USAGE
 # python index_features.py --dataset caltech5 --features-db output/features.hdf5 --approx-images 500
 
@@ -45,8 +46,8 @@ random.shuffle(imagePaths)
 # loop over the images in the dataset
 for (i, imagePath) in enumerate(imagePaths):
 	# check to see if progress should be displayed
-	if i > 0 and i % 10 == 0:
-		fi._debug("processed {} images".format(i), msgType="[PROGRESS]")
+	#if i > 0 and i % 10 == 0:
+	#fi._debug("processed {} images".format(i), msgType="[PROGRESS]")
 
 	# extract the filename and image class from the image path and use it to
 	# construct the unique image ID

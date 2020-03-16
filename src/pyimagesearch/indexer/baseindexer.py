@@ -33,7 +33,7 @@ class BaseIndexer(object):
 
 		# check to see if the dataset needs to be resized
 		if end > dataset.shape[0]:
-			self._debug("triggering `{}` db resize".format(datasetName))
+			#self._debug("triggering `{}` db resize".format(datasetName))
 			self._resizeDataset(dataset, datasetName, baseSize=end)
 
 		# if this is a sparse matrix, then convert the sparse matrix to a
@@ -42,7 +42,7 @@ class BaseIndexer(object):
 			buf = buf.toarray()
 
 		# dump the buffer to file
-		self._debug("writing `{}` buffer".format(datasetName))
+		#self._debug("writing `{}` buffer".format(datasetName))
 		dataset[self.idxs[idxName]:end] = buf
 
 	def _resizeDataset(self, dataset, dbName, baseSize=0, finished=0):

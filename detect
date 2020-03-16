@@ -1,7 +1,0 @@
-#!/bin/bash
-
-source ~/anaconda3/etc/profile.d/conda.sh
-conda activate imagesearch
-
-#python detect.py --images ../../data/drone_images/Camera  --codebook output/vocab.cpickle --model output/model.cpickle
-python detect.py --images test_images  --codebook output/vocab.cpickle --model output/model.cpickle

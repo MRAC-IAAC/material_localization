@@ -68,9 +68,9 @@ print("[INFO] best hyperparameters: {}".format(model.best_params_))
 # show a classification report
 print("[INFO] evaluating...")
 predictions = model.predict(testData)
-print(type(testData))
-print(testData.shape)
-print(testData)
+#print(type(testData))
+#print(testData.shape)
+#print(testData)
 
 
 print(classification_report(testLabels, predictions))

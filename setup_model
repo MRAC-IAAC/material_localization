@@ -1,0 +1,28 @@
+#!/bin/bash
+
+dataset_path="../../data/s2g1_dataset/images"
+
+echo ""
+echo "ENSURE ENV ACTIVATION"
+source ~/anaconda3/etc/profile.d/conda.sh
+conda activate imagesearch
+
+echo ""
+echo "EXTRACT HUE AND SATURATION HISTOGRAMS"
+python src/index_hue_sat.py --dataset $dataset_path --hs-db model/hs-db.hdf5
+
+echo ""
+echo "INDEX FEATURES"
+python src/index_features.py --dataset $dataset_path --features-db model/features.hdf5 --approx-images 1000 --feature-detector GFTT --extractor BRISK
+
+echo ""
+echo "CLUSTER FEATURES"
+python src/cluster_features.py --features-db model/features.hdf5 --codebook model/vocab.cpickle --clusters 512 --percentage 0.25
+
+echo ""
+echo "EXTRACT BOVW"
+python src/extract_bovw.py --features-db model/features.hdf5 --codebook model/vocab.cpickle --bovw-db model/bovw.hdf5
+
+echo ""
+echo "TRAIN MODEL"
+python src/train_model.py --dataset $dataset_path --features-db model/features.hdf5 --bovw-db model/bovw.hdf5 --model model/model.cpickle

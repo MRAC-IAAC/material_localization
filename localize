@@ -3,6 +3,6 @@
 source ~/anaconda3/etc/profile.d/conda.sh
 conda activate imagesearch
 
-python localize.py --images test_images_real --codebook output/vocab.cpickle --model output/model.cpickle
+python src/localize.py --images data/test_images_site --codebook model/vocab.cpickle --model model/model.cpickle
 
-#python localize.py --images ../../data/drone_images/Camera --codebook output/vocab.cpickle --model output/model.cpickle
+#python src/localize.py --images ../../data/drone_images/Camera --codebook model/vocab.cpickle --model model/model.cpickle

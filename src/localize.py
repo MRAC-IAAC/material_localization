@@ -41,7 +41,7 @@ dad = DetectAndDescribe(detector, descriptor)
 idf = None
 
 # Load inverse document frequency file
-idf = pickle.loads(open("output/idf.cpickle","rb").read())
+idf = pickle.loads(open("model/idf.cpickle","rb").read())
 
 # load the codebook vocabulary and initialize the bag-of-visual-words transformer
 vocab = pickle.loads(open(args["codebook"], "rb").read())
@@ -51,7 +51,7 @@ bovw = BagOfVisualWords(vocab)
 model = pickle.loads(open(args["model"], "rb").read())
 
 # Load hue and saturation data
-db_hs = h5py.File('output/hs-db.hdf5',mode='r')
+db_hs = h5py.File('model/hs-db.hdf5',mode='r')
 hue_set = db_hs['hue']
 sat_set = db_hs['sat']
 

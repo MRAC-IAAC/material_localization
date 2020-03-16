@@ -28,9 +28,6 @@ db_hs = h5py.File(args['hs_db'],mode='w')
 hue_set = db_hs.create_dataset("hue",(16 * len(categories),1),dtype='float')
 sat_set = db_hs.create_dataset("sat",(16 * len(categories),1),dtype='float')
 
-
-
-
 total_hue = {}
 total_sat = {}
 category_totals = {}
@@ -61,23 +58,18 @@ for (i, imagePath) in enumerate(imagePaths):
     # Normalize Histograms
     hist_hue /= hist_hue.sum()
     hist_sat /= hist_sat.sum()
-    
+
+    # Add to histogram totals
     total_hue[category] += hist_hue
     total_sat[category] += hist_sat
 
 for i,c in enumerate(categories):
+    # Find average histograms
     total_hue[c] /= category_totals[c]
     total_sat[c] /= category_totals[c]
 
+    # Put average histograms in database
     hue_set[i * 16 : i * 16 + 16] = total_hue[c]
     sat_set[i * 16 : i * 16 + 16] =  total_sat[c]
-    
-    #print("")
-    #print(c)
-    #print(total_hue[c].sum())
-    #print(total_hue[c])
-
-    #print(total_sat[c].sum())
-    #print(total_sat[c])
     
 db_hs.close()

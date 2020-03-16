@@ -52,6 +52,6 @@ for (i, (imageID, offset)) in enumerate(zip(featuresDB["image_ids"], featuresDB[
 featuresDB.close()
 bi.finish()
 
-f = open("output/idf.cpickle", "wb")
+f = open("model/idf.cpickle", "wb")
 f.write(pickle.dumps(bi.df(method="idf")))
 f.close()

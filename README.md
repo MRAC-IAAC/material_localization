@@ -29,7 +29,7 @@ Ensure that the 'dataset\_path' variable in the setup_detector script is set cor
 
 This will take ~20 minutes to run, mostly due to sampling the database during the feature clustering step.
 
-This will produce several files in the 'output/' folder: 
+This will produce several files in the 'model/' folder: 
 
 - **hs-db.hdf5** : Averaged hue and saturation histograms for each category of the input dataset
 - **features.hdf5** : Raw list of all features detected in input set
@@ -48,9 +48,9 @@ Ensure the '--images' argument in the call to localize.py is properly set for th
 
 Each image takes ~5 seconds to process. 
 
-This will write images with category colors to the 'output_localization' folder, as well as text files containing the heuristically weighted category probabilities for each image subpatch. 
+This will write images with category colors to the 'output_localization' folder, as well as text files containing the heuristically weighted category scores for each image subpatch. 
 
-Not these are currently not re-normalized, and will almost always be negative. 
+Not these are currently not re-normalized, and will almost always be negative, due to the way heuristics are applied.
 
 ---
 
