@@ -8,6 +8,7 @@ from pyimagesearch.indexer import BOVWIndexer
 import argparse
 import pickle
 import h5py
+import progressbar
 
 # construct the argument parser and parse the arguments
 ap = argparse.ArgumentParser()
@@ -31,24 +32,30 @@ bi = BOVWIndexer(bovw.codebook.shape[0], args["bovw_db"],
 	estNumImages=featuresDB["image_ids"].shape[0],
 	maxBufferSize=args["max_buffer_size"])
 
+widgets = ["Extracting BOVW : ", progressbar.Percentage(), " ", progressbar.Bar(), " ", progressbar.ETA()]
+pbar = progressbar.ProgressBar(maxval = len(featuresDB["index"]),widgets=widgets).start()
+
 # loop over the image IDs and index
 for (i, (imageID, offset)) in enumerate(zip(featuresDB["image_ids"], featuresDB["index"])):
-	# check to see if progress should be displayed
-	if i > 0 and i % 10 == 0:
-		bi._debug("processed {} images".format(i), msgType="[PROGRESS]")
+    # check to see if progress should be displayed
+    
+    if i > 0 and i % 10 == 0:
+        pbar.update(i)
+        #bi._debug("processed {} images".format(i), msgType="[PROGRESS]")
 
-	# extract the feature vectors for the current image using the starting and
-	# ending offsets (while ignoring the keypoints) and then quantize the
-	# features to construct the bag-of-visual-words histogram
-	features = featuresDB["features"][offset[0]:offset[1]][:, 2:]
-	hist = bovw.describe(features)
+    # extract the feature vectors for the current image using the starting and
+    # ending offsets (while ignoring the keypoints) and then quantize the
+    # features to construct the bag-of-visual-words histogram
+    features = featuresDB["features"][offset[0]:offset[1]][:, 2:]
+    hist = bovw.describe(features)
 
-	# normalize the histogram such that it sums to one then add the
-	# bag-of-visual-words to the index
-	hist /= hist.sum()
-	bi.add(hist)
+    # normalize the histogram such that it sums to one then add the
+    # bag-of-visual-words to the index
+    hist /= hist.sum()
+    bi.add(hist)
 
 # close the features database and finish the indexing process
+pbar.finish()
 featuresDB.close()
 bi.finish()
 

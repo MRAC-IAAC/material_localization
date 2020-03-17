@@ -1,5 +1,5 @@
 * TODO
-** v001[4/13]
+** v001[6/14]
 - [ ] Even out image counts in training_set, aim for ~200/category, with even mix between sources
 - [X] Add 'None' Category
 - [ ] Annotate training_set
@@ -11,6 +11,6 @@
 - [ ] Apply marching squares to localizatoin output?
 - [X] Adjust training / testing ratio of images in training script
 - [X] Refactor python files into src folder
-- [ ] Add utility scripts to repo
-- [ ] Move datasets into project folder
+- [X] Add utility scripts to repo
+- [X] Move datasets into project folder
 - [ ] Make resolution arbitrarily scalable

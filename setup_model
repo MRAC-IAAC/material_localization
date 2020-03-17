@@ -1,6 +1,6 @@
 #!/bin/bash
 
-dataset_path="../../data/s2g1_dataset/images"
+dataset_path="data/s2g1_dataset/images"
 
 echo ""
 echo "ENSURE ENV ACTIVATION"

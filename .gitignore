@@ -8,6 +8,8 @@
 
 *.zip
 
+data/
+model/
 output/
 output_detection/
 output_localization/

@@ -43,7 +43,6 @@ bovwDB = h5py.File(args["bovw_db"],'r')
 
 # Divide image with 3/5 for training and 2/5 for testing
 split_point = int(featuresDB["image_ids"].shape[0] / 5 * 3)
-print(split_point)
 
 # grab the training and testing data from the dataset using the first 300
 # images as training and the remaining 200 images for testing
