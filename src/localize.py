@@ -82,13 +82,13 @@ for img_id,imagePath in enumerate(image_paths):
     prediction_list = []
 
     win_size = 100
-    cell_size = 50
+    patch_size = 50
 
     img_width = img_gray.shape[1]
     img_height = img_gray.shape[0]
 
-    patch_width = (img_width // cell_size) + 1
-    patch_height = (img_height // cell_size) + 1
+    patch_width = (img_width // patch_size) + 1
+    patch_height = (img_height // patch_size) + 1
     patch_length = patch_width * patch_height
 
     widgets = ["Localizing: ", progressbar.Percentage(), " ", progressbar.Bar(), " ", progressbar.ETA()]
@@ -96,8 +96,8 @@ for img_id,imagePath in enumerate(image_paths):
 
     patch_totals = np.zeros(shape=(patch_width,patch_height,5))
 
-    for (patch_id,(x,y,window_gray,window_hsv)) in enumerate(sliding_window_double(img_gray,img_hsv,stepSize=cell_size,windowSize=(win_size,win_size))):
-
+    for (patch_id,(x,y,window_gray,window_hsv)) in enumerate(sliding_window_double(img_gray,img_hsv,stepSize=patch_size,windowSize=(win_size,win_size))):
+        # Find x and y position in the patch grid
         patch_x = patch_id % patch_width
         patch_y = patch_id // patch_width
 
@@ -113,18 +113,26 @@ for img_id,imagePath in enumerate(image_paths):
         hist /= hist.sum()
         hist = hist.toarray()
 
-        # Be sure to shape properly to avoid wonkiness
+        # Apply idf factor to histogram
         if idf is not None:
             idf = idf.reshape(1,-1)
             hist *= idf
 
-        # Predict based on gray patch
+        # Get prediction probabilities based on gray patch
         prediction = model.predict_proba(hist)[0]
 
         # Extract hue and sat histograms
         (h,s,v) = cv2.split(window_hsv)
-        hist_hue = cv2.calcHist(h,[0],None,[16],[0,180])
-        hist_sat = cv2.calcHist(s,[0],None,[16],[0,256])
+
+        # Turn image into 1d array
+        h_flat = h.reshape(1,h.shape[0] * h.shape[1])
+        s_flat = s.reshape(1,s.shape[0] * s.shape[1])
+
+        # Calculate histograms
+        hist_hue = cv2.calcHist(h_flat,[0],None,[16],[0,180])
+        hist_sat = cv2.calcHist(s_flat,[0],None,[16],[0,256])
+
+        # Normalize Histograms
         hist_hue /= hist_hue.sum()
         hist_sat /= hist_sat.sum()
 
@@ -133,11 +141,11 @@ for img_id,imagePath in enumerate(image_paths):
         sat_diffs = np.zeros(5)
         for i in range(5):
             
-            hue_slice = hue_set[i * 16 : i * 16 + 16]
-            sat_slice = sat_set[i * 16 : i * 16 + 16]
+            hist_hue_avg = hue_set[i * 16 : i * 16 + 16]
+            hist_sat_avg = sat_set[i * 16 : i * 16 + 16]
 
-            hue_diffs[i] = np.abs(hue_slice - hist_hue).sum()
-            sat_diffs[i] = np.abs(sat_slice - hist_sat).sum()
+            hue_diffs[i] = np.abs(hist_hue_avg - hist_hue).sum()
+            sat_diffs[i] = np.abs(hist_sat_avg - hist_sat).sum()
 
         # Weight the predictions using hue and sat diffs
         prediction -= hue_diffs * 0.5
@@ -159,8 +167,8 @@ for img_id,imagePath in enumerate(image_paths):
     for i in range(patch_length):
         patch_x = i % patch_width
         patch_y = i // patch_width
-        pixel_x = patch_x * cell_size
-        pixel_y = patch_y * cell_size
+        pixel_x = patch_x * patch_size
+        pixel_y = patch_y * patch_size
         id = np.argmax(patch_totals[patch_x,patch_y])
         prediction_list.append(patch_totals[patch_x,patch_y])
         cv2.rectangle(squares_img,(pixel_x,pixel_y),(pixel_x + win_size,pixel_y + win_size),category_colors[id],-1)

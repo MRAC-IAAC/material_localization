@@ -51,10 +51,14 @@ for (i, imagePath) in enumerate(imagePaths):
     hsv_image = cv2.cvtColor(image,cv2.COLOR_BGR2HSV)
     (h,s,v) = cv2.split(hsv_image)
 
+    # Turn image into 1d array
+    h_flat = h.reshape(1,h.shape[0] * h.shape[1])
+    s_flat = s.reshape(1,s.shape[0] * s.shape[1])
+    
     # Calculate Histograms
-    hist_hue = cv2.calcHist(h,[0],None,[16],[0,180])
-    hist_sat = cv2.calcHist(s,[0],None,[16],[0,256])
-
+    hist_hue = cv2.calcHist(h_flat,[0],None,[16],[0,180])
+    hist_sat = cv2.calcHist(s_flat,[0],None,[16],[0,256])
+    
     # Normalize Histograms
     hist_hue /= hist_hue.sum()
     hist_sat /= hist_sat.sum()
