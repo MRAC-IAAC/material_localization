@@ -38,14 +38,18 @@ ap.add_argument("-m", "--model", required=True,
 args = vars(ap.parse_args())
 
 # open the features and bag-of-visual-words databases
-featuresDB = h5py.File(args["features_db"])
-bovwDB = h5py.File(args["bovw_db"])
+featuresDB = h5py.File(args["features_db"],'r')
+bovwDB = h5py.File(args["bovw_db"],'r')
+
+# Divide image with 3/5 for training and 2/5 for testing
+split_point = int(featuresDB["image_ids"].shape[0] / 5 * 3)
+print(split_point)
 
 # grab the training and testing data from the dataset using the first 300
 # images as training and the remaining 200 images for testing
 print("[INFO] loading data...")
-(trainData, trainLabels) = (bovwDB["bovw"][:300], featuresDB["image_ids"][:300])
-(testData, testLabels) = (bovwDB["bovw"][300:], featuresDB["image_ids"][300:])
+(trainData, trainLabels) = (bovwDB["bovw"][:split_point], featuresDB["image_ids"][:split_point])
+(testData, testLabels) = (bovwDB["bovw"][split_point:], featuresDB["image_ids"][split_point:])
 
 
 
