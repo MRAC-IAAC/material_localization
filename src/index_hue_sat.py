@@ -8,6 +8,7 @@ import imutils
 import random
 import cv2
 import h5py
+import progressbar
 
 import numpy as np
 
@@ -27,6 +28,7 @@ categories = ["brick","concrete","metal","wood","z_none"]
 db_hs = h5py.File(args['hs_db'],mode='w')
 hue_set = db_hs.create_dataset("hue",(16 * len(categories),1),dtype='float')
 sat_set = db_hs.create_dataset("sat",(16 * len(categories),1),dtype='float')
+sat_totals_set = db_hs.create_dataset("sat_total",(len(categories),1),dtype='float')
 
 total_hue = {}
 total_sat = {}
@@ -37,6 +39,9 @@ for c in categories:
     total_sat[c] = np.reshape(np.zeros(16),(16,1))
     category_totals[c] = 0
 
+widgets = ["Indexing Hue and Sat : ", progressbar.Percentage(), " ", progressbar.Bar(), " ", progressbar.ETA()]
+pbar = progressbar.ProgressBar(maxval = len(imagePaths),widgets=widgets).start()
+    
 for (i, imagePath) in enumerate(imagePaths):
 
     # Load and Reize Image
@@ -67,6 +72,11 @@ for (i, imagePath) in enumerate(imagePaths):
     total_hue[category] += hist_hue
     total_sat[category] += hist_sat
 
+    if i % 10 == 0:
+        pbar.update(i)
+
+pbar.finish()
+
 for i,c in enumerate(categories):
     # Find average histograms
     total_hue[c] /= category_totals[c]
@@ -75,5 +85,11 @@ for i,c in enumerate(categories):
     # Put average histograms in database
     hue_set[i * 16 : i * 16 + 16] = total_hue[c]
     sat_set[i * 16 : i * 16 + 16] =  total_sat[c]
+
+    total = 0
+    for j,n in enumerate(total_sat[c]):
+        total += n * (j + 1)
+    sat_totals_set[i] = total
+    print(total)
     
 db_hs.close()

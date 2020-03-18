@@ -52,10 +52,12 @@ model = pickle.loads(open(args["model"], "rb").read())
 
 # Load hue and saturation data
 db_hs = h5py.File('model/hs-db.hdf5',mode='r')
-hue_set = db_hs['hue']
-sat_set = db_hs['sat']
+hue_set = db_hs['hue'][::]
+sat_set = db_hs['sat'][::]
+sat_total_set = db_hs['sat_total'][::]
 
-category_colors = ((0,0,255),(255,0,0),(0,255,0),(0,255,255),(0,0,0))
+# The None category is a very dark magenta
+category_colors = ((0,0,255),(255,0,0),(0,255,0),(0,255,255),(10,0,10))
 
 start_time = time.time()
 
@@ -80,6 +82,7 @@ for img_id,imagePath in enumerate(image_paths):
     squares_img = np.zeros(display_img.shape,np.uint8)
 
     prediction_list = []
+    prediction_list_raw = []
 
     win_size = 100
     patch_size = 50
@@ -94,7 +97,11 @@ for img_id,imagePath in enumerate(image_paths):
     widgets = ["Localizing: ", progressbar.Percentage(), " ", progressbar.Bar(), " ", progressbar.ETA()]
     pbar = progressbar.ProgressBar(maxval = patch_length,widgets=widgets).start()
 
+    # All score totals including h/s calculations
     patch_totals = np.zeros(shape=(patch_width,patch_height,5))
+
+    # Score totals only using bovw scores
+    patch_predictions = np.zeros(shape=(patch_width,patch_height,5))
 
     for (patch_id,(x,y,window_gray,window_hsv)) in enumerate(sliding_window_double(img_gray,img_hsv,stepSize=patch_size,windowSize=(win_size,win_size))):
         # Find x and y position in the patch grid
@@ -120,6 +127,8 @@ for img_id,imagePath in enumerate(image_paths):
 
         # Get prediction probabilities based on gray patch
         prediction = model.predict_proba(hist)[0]
+
+        prediction_weighted = np.copy(prediction)
 
         # Extract hue and sat histograms
         (h,s,v) = cv2.split(window_hsv)
@@ -148,8 +157,13 @@ for img_id,imagePath in enumerate(image_paths):
             sat_diffs[i] = np.abs(hist_sat_avg - hist_sat).sum()
 
         # Weight the predictions using hue and sat diffs
-        prediction -= hue_diffs * 0.5
-        prediction -= sat_diffs * 2.0
+        sat_factor = 1.18
+        hue_factor = 0.18
+        
+        prediction_weighted -= sat_diffs * 1.81        
+        #prediction_weighted -= hue_diffs * 0.5
+        for i in range(5):
+            prediction_weighted[i] -= hue_diffs[i] * hue_factor * sat_total_set[i]
 
         # Apply window predictions to patches
         for i in range(9):
@@ -157,7 +171,8 @@ for img_id,imagePath in enumerate(image_paths):
             ny = patch_y + dy[i]
             if nx >= patch_width or ny >= patch_height:
                 continue
-            patch_totals[nx,ny] += prediction
+            patch_totals[nx,ny] += prediction_weighted
+            patch_predictions[nx,ny] += prediction
 
         pbar.update(patch_id)
         
@@ -171,6 +186,7 @@ for img_id,imagePath in enumerate(image_paths):
         pixel_y = patch_y * patch_size
         id = np.argmax(patch_totals[patch_x,patch_y])
         prediction_list.append(patch_totals[patch_x,patch_y])
+        prediction_list_raw.append(patch_predictions[patch_x,patch_y])
         cv2.rectangle(squares_img,(pixel_x,pixel_y),(pixel_x + win_size,pixel_y + win_size),category_colors[id],-1)
 
     # Draw the category colors onto the image
@@ -180,10 +196,14 @@ for img_id,imagePath in enumerate(image_paths):
     #cv2.imshow("window",display_img)
     #cv2.waitKey(0)
 
-    # Write the image and text file output
-    cv2.imwrite("output_localization/" + imagePath.split("/")[-1],display_img)
-    with open("output_localization/" + name + ".txt",'w') as f:
+    # Write the images and text file output
+    cv2.imwrite("output/localization/" + imagePath.split("/")[-1],display_img)
+    cv2.imwrite("output/localization_color/" + imagePath.split("/")[-1].split('.')[0] + '.png',squares_img)
+    with open("output/localization/" + name + ".txt",'w') as f:
         for line in prediction_list:
+            f.write(np.array2string(line) + "\n")
+    with open("output/localization_raw/" + name + ".txt",'w') as f:
+        for line in prediction_list_raw:
             f.write(np.array2string(line) + "\n")
     
 end_time = time.time()

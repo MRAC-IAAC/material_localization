@@ -91,6 +91,17 @@ for id,i in enumerate(np.random.choice(np.arange(300, 500), size=(20,), replace=
     #cv2.imshow("Image", image)
     #cv2.imwrite("image{}.jpg".format(id),image)
     #cv2.waitKey(0)
+
+# Train the hue and saturation parameters
+sat_factor = 1
+hue_factor = 1
+
+db_hs = h5py.File('model/hs-db.hdf5',mode='r')
+hue_set = db_hs['hue']
+sat_set = db_hs['sat']
+
+print(hue_set)
+
     
 # close the databases
 featuresDB.close()
