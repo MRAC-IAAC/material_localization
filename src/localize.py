@@ -19,8 +19,12 @@ import time
 import numpy as np
 
 # Offsets for applying detection windows to subpatches
-dx = (0,1,2,0,1,2,0,1,2)
-dy = (0,0,0,1,1,1,2,2,2)
+kernel_size = 4
+dx = list(range(kernel_size)) * kernel_size
+dy = []
+for i in range(kernel_size):
+    for j in range(kernel_size):
+        dy.append(i)
 
 # construct the argument parser and parse the arguments
 ap = argparse.ArgumentParser()
@@ -85,7 +89,7 @@ for img_id,imagePath in enumerate(image_paths):
     prediction_list_raw = []
 
     win_size = 100
-    patch_size = 50
+    patch_size = 25
 
     img_width = img_gray.shape[1]
     img_height = img_gray.shape[0]
