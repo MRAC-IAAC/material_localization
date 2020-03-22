@@ -62,7 +62,7 @@ testLabels = [l.split(":")[0] for l in testLabels]
 print("[INFO] tuning hyperparameters...")
 params = {"C": [0.1, 1.0, 10.0, 100.0, 1000.0, 10000.0]}
 
-# Trying SVC instead of LinearSVC, to see what predict_proba does
+# Trying SVC  instead of LinearSVC, to see what predict_proba does
 #model = GridSearchCV(LinearSVC(random_state=42), params, cv=3)
 model = GridSearchCV(SVC(random_state=42,probability = True), params, cv=3)
 model.fit(trainData, trainLabels)

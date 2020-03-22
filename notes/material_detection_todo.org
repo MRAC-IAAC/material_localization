@@ -3,7 +3,7 @@ quick:
 fix badd annotation and rexport rendered anotations
 
 * TODO
-** v001[11/15]
+** v001[12/17]
 - [ ] Even out image counts in training_set, aim for ~200/category, with even mix between sources
 - [X] Add 'None' Category
 - [ ] Annotate training_set
@@ -20,3 +20,4 @@ fix badd annotation and rexport rendered anotations
 - [X] Make resolution arbitrarily scalable
 - [X] Also export pure color patch
 - [ ] Check if an image has already been processed
+- [X] Add raw LBP analysis

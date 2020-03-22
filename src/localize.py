@@ -2,6 +2,7 @@ from __future__ import print_function
 
 from pyimagesearch.descriptors import DetectAndDescribe
 from pyimagesearch.ir import BagOfVisualWords
+from pyimagesearch.localbinarypatterns import LocalBinaryPatterns
 from pyimagesearch.object_detection.helpers import sliding_window_double
 from pyimagesearch.object_detection.helpers import pyramid
 
@@ -18,14 +19,6 @@ import time
 
 import numpy as np
 
-# Offsets for applying detection windows to subpatches
-kernel_size = 4
-dx = list(range(kernel_size)) * kernel_size
-dy = []
-for i in range(kernel_size):
-    for j in range(kernel_size):
-        dy.append(i)
-
 # construct the argument parser and parse the arguments
 ap = argparse.ArgumentParser()
 ap.add_argument("-i", "--images", required=True,
@@ -36,6 +29,17 @@ ap.add_argument("-m", "--model", required=True,
 	help="Path to the classifier")
 ap.add_argument("-e", "--extractor",default="BRISK")
 args = vars(ap.parse_args())
+
+# Offsets for applying detection windows to subpatches
+kernel_size = 4
+dx = list(range(kernel_size)) * kernel_size
+dy = []
+for i in range(kernel_size):
+    for j in range(kernel_size):
+        dy.append(i)
+
+win_size = 100
+patch_size = win_size // kernel_size
 
 # initialize the keypoint detector, local invariant descriptor, and the descriptor
 # pipeline
@@ -60,8 +64,20 @@ hue_set = db_hs['hue'][::]
 sat_set = db_hs['sat'][::]
 sat_total_set = db_hs['sat_total'][::]
 
+# Load lbp model
+model_lbp4 = pickle.loads(open('output/model_lbp4.cpickle', "rb").read())
+model_lbp8 = pickle.loads(open('output/model_lbp8.cpickle', "rb").read())
+desc4 = LocalBinaryPatterns(24,4) # 0.58
+desc8 = LocalBinaryPatterns(24,8) # 0.58
+
 # The None category is a very dark magenta
 category_colors = ((0,0,255),(255,0,0),(0,255,0),(0,255,255),(10,0,10))
+
+# Whether to resize all patches to 364x364. Slows things down immensely, but may be necessary for accuracy?
+flag_resize = False
+
+
+# === MAIN SCRIPT === 
 
 start_time = time.time()
 
@@ -88,9 +104,6 @@ for img_id,imagePath in enumerate(image_paths):
     prediction_list = []
     prediction_list_raw = []
 
-    win_size = 100
-    patch_size = 25
-
     img_width = img_gray.shape[1]
     img_height = img_gray.shape[0]
 
@@ -113,8 +126,9 @@ for img_id,imagePath in enumerate(image_paths):
         patch_y = patch_id // patch_width
 
         # Ensure patch size
-        window_gray = imutils.resize(window_gray,width = 364)
-        window_hsv = imutils.resize(window_hsv,width=364)
+        if flag_resize:
+            window_gray = imutils.resize(window_gray,width = 364)
+            window_hsv = imutils.resize(window_hsv,width=364)
 
         # Describe gray patch
         (kps,descs) = dad.describe(window_gray)
@@ -123,6 +137,19 @@ for img_id,imagePath in enumerate(image_paths):
         hist = bovw.describe(descs)
         hist /= hist.sum()
         hist = hist.toarray()
+
+        # Get lbp descriptions
+        hist4 = desc4.describe(window_gray)
+        hist8 = desc8.describe(window_gray)
+
+        hist4 /= hist4.sum()
+        hist8 /= hist8.sum()
+
+        hist4 = hist4.reshape(1,-1)
+        hist8 = hist8.reshape(1,-1)
+
+        proba_4 = model_lbp4.predict_proba(hist4).flatten()
+        proba_8 = model_lbp8.predict_proba(hist8).flatten()
 
         # Apply idf factor to histogram
         if idf is not None:
@@ -161,13 +188,17 @@ for img_id,imagePath in enumerate(image_paths):
             sat_diffs[i] = np.abs(hist_sat_avg - hist_sat).sum()
 
         # Weight the predictions using hue and sat diffs
-        sat_factor = 1.18
-        hue_factor = 0.18
-        
-        prediction_weighted -= sat_diffs * 1.81        
-        #prediction_weighted -= hue_diffs * 0.5
+        sat_factor = 1.9
+        hue_factor = 0.14
+
+        # Weight prediction
+        prediction_weighted -= sat_diffs * sat_factor
         for i in range(5):
             prediction_weighted[i] -= hue_diffs[i] * hue_factor * sat_total_set[i]
+
+        prediction_weighted += proba_4
+        prediction_weighted += proba_8
+
 
         # Apply window predictions to patches
         for i in range(9):

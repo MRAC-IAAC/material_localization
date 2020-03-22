@@ -24,5 +24,9 @@ echo "EXTRACT BOVW"
 python src/extract_bovw.py --features-db model/features.hdf5 --codebook model/vocab.cpickle --bovw-db model/bovw.hdf5
 
 echo ""
-echo "TRAIN MODEL"
+echo "TRAIN LBP MODEL"
+python src/train_lbp.py --input $dataset_path
+
+echo ""
+echo "TRAIN BOVW MODEL"
 python src/train_model.py --dataset $dataset_path --features-db model/features.hdf5 --bovw-db model/bovw.hdf5 --model model/model.cpickle

@@ -21,7 +21,7 @@ args = vars(ap.parse_args())
 
 
 imagePaths = list(paths.list_images(args["dataset"]))
-random.shuffle(imagePaths)
+#random.shuffle(imagePaths)
 
 categories = ["brick","concrete","metal","wood","z_none"]
 
@@ -39,9 +39,11 @@ for c in categories:
     total_sat[c] = np.reshape(np.zeros(16),(16,1))
     category_totals[c] = 0
 
+print("Analyzing {} images".format(len(imagePaths)))
+    
 widgets = ["Indexing Hue and Sat : ", progressbar.Percentage(), " ", progressbar.Bar(), " ", progressbar.ETA()]
 pbar = progressbar.ProgressBar(maxval = len(imagePaths),widgets=widgets).start()
-    
+
 for (i, imagePath) in enumerate(imagePaths):
 
     # Load and Reize Image
@@ -90,6 +92,14 @@ for i,c in enumerate(categories):
     for j,n in enumerate(total_sat[c]):
         total += n * (j + 1)
     sat_totals_set[i] = total
-    print(total)
+
+# Normalize sat totals
+set_min = np.min(sat_totals_set)
+set_max = np.max(sat_totals_set)
+set_range = set_max - set_min
+sat_totals_set = ((sat_totals_set - set_min) / set_range) * 0.9 + 0.1
+
+print("Saturation ratios by category : ")
+print(sat_totals_set[::])
     
 db_hs.close()
