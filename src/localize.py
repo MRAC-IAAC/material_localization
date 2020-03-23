@@ -71,7 +71,8 @@ desc4 = LocalBinaryPatterns(24,4) # 0.58
 desc8 = LocalBinaryPatterns(24,8) # 0.58
 
 # The None category is a very dark magenta
-category_colors = ((0,0,255),(255,0,0),(0,255,0),(0,255,255),(10,0,10))
+#category_colors = ((0,0,255),(255,0,0),(0,255,0),(0,255,255),(10,0,10))
+category_colors = ((0,0,255),(255,0,0),(0,255,0),(0,255,255),(0,0,0))
 
 # Whether to resize all patches to 364x364. Slows things down immensely, but may be necessary for accuracy?
 flag_resize = False
@@ -86,6 +87,7 @@ image_paths = paths.list_images(args["images"])
 for img_id,imagePath in enumerate(image_paths):
     print("{} : {}".format(str(img_id).zfill(3),imagePath))
     name = imagePath.split("/")[-1].split(".")[0]
+    
     # load the image and prepare it from description
     img_main = cv2.imread(imagePath)
     
@@ -225,15 +227,23 @@ for img_id,imagePath in enumerate(image_paths):
         cv2.rectangle(squares_img,(pixel_x,pixel_y),(pixel_x + win_size,pixel_y + win_size),category_colors[id],-1)
 
     # Draw the category colors onto the image
-    cv2.addWeighted(squares_img,0.5,display_img,0.5,0,display_img)
+    #cv2.addWeighted(squares_img,0.5,display_img,0.5,0,display_img)
+
+    squares_img_hsv = cv2.cvtColor(squares_img,cv2.COLOR_BGR2HSV)
+    (sh,ss,sv) = cv2.split(squares_img_hsv)
+
+    (imh,ims,imv) = cv2.split(img_hsv)
+
+    display_img = cv2.merge((sh,ss,imv))
+    display_img = cv2.cvtColor(display_img,cv2.COLOR_HSV2BGR)
 
     # Display the image to the user
     #cv2.imshow("window",display_img)
     #cv2.waitKey(0)
 
     # Write the images and text file output
-    cv2.imwrite("output/localization/" + imagePath.split("/")[-1],display_img)
-    cv2.imwrite("output/localization_color/" + imagePath.split("/")[-1].split('.')[0] + '.png',squares_img)
+    cv2.imwrite("output/localization/" + name + ".png",display_img)
+    cv2.imwrite("output/localization_color/" + name + '.png',squares_img)
     with open("output/localization/" + name + ".txt",'w') as f:
         for line in prediction_list:
             f.write(np.array2string(line) + "\n")
