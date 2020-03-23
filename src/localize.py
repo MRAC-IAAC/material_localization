@@ -30,8 +30,9 @@ ap.add_argument("-m", "--model", required=True,
 ap.add_argument("-e", "--extractor",default="BRISK")
 args = vars(ap.parse_args())
 
-# Offsets for applying detection windows to subpatches
+# How many classification patches a single window covers on a side
 kernel_size = 4
+# Offsets for applying detection windows to subpatches
 dx = list(range(kernel_size)) * kernel_size
 dy = []
 for i in range(kernel_size):
@@ -41,21 +42,20 @@ for i in range(kernel_size):
 win_size = 100
 patch_size = win_size // kernel_size
 
-# initialize the keypoint detector, local invariant descriptor, and the descriptor
+# Initialize the keypoint detector, local invariant descriptor, and the descriptor
 # pipeline
 detector = FeatureDetector_create("GFTT")
 descriptor = DescriptorExtractor_create(args["extractor"])
 dad = DetectAndDescribe(detector, descriptor)
-idf = None
 
 # Load inverse document frequency file
 idf = pickle.loads(open("model/idf.cpickle","rb").read())
 
-# load the codebook vocabulary and initialize the bag-of-visual-words transformer
+# Load the codebook vocabulary and initialize the bag-of-visual-words transformer
 vocab = pickle.loads(open(args["codebook"], "rb").read())
 bovw = BagOfVisualWords(vocab)
 
-# load the classifier
+# Load the bovw classifier
 model = pickle.loads(open(args["model"], "rb").read())
 
 # Load hue and saturation data
@@ -64,11 +64,11 @@ hue_set = db_hs['hue'][::]
 sat_set = db_hs['sat'][::]
 sat_total_set = db_hs['sat_total'][::]
 
-# Load lbp model
-model_lbp4 = pickle.loads(open('output/model_lbp4.cpickle', "rb").read())
-model_lbp8 = pickle.loads(open('output/model_lbp8.cpickle', "rb").read())
-desc4 = LocalBinaryPatterns(24,4) # 0.58
-desc8 = LocalBinaryPatterns(24,8) # 0.58
+# Load lbp models
+model_lbp4 = pickle.loads(open('model/model_lbp4.cpickle', "rb").read())
+model_lbp8 = pickle.loads(open('model/model_lbp8.cpickle', "rb").read())
+desc4 = LocalBinaryPatterns(24,4)
+desc8 = LocalBinaryPatterns(24,8)
 
 # The None category is a very dark magenta
 #category_colors = ((0,0,255),(255,0,0),(0,255,0),(0,255,255),(10,0,10))
@@ -76,6 +76,9 @@ category_colors = ((0,0,255),(255,0,0),(0,255,0),(0,255,255),(0,0,0))
 
 # Whether to resize all patches to 364x364. Slows things down immensely, but may be necessary for accuracy?
 flag_resize = False
+
+# Whether to show each image to the user as its localized
+flag_display = False
 
 
 # === MAIN SCRIPT === 
@@ -88,22 +91,25 @@ for img_id,imagePath in enumerate(image_paths):
     print("{} : {}".format(str(img_id).zfill(3),imagePath))
     name = imagePath.split("/")[-1].split(".")[0]
     
-    # load the image and prepare it from description
+    # img_main is the original, full size image
     img_main = cv2.imread(imagePath)
-    
+
+    # img_gray is resized to 1024 width and in grayscale
     img_gray = cv2.cvtColor(img_main, cv2.COLOR_BGR2GRAY)
     img_gray = imutils.resize(img_gray, width=min(1024, img_main.shape[1]))
 
+    # img_hsv is resized to 1024 width and hsv space
     img_hsv = cv2.cvtColor(img_main,cv2.COLOR_BGR2HSV)
     img_hsv = imutils.resize(img_hsv,width = min(1024,img_main.shape[1]))
 
-    
-    display_img = img_main.copy()
-    display_img = imutils.resize(display_img, width=min(1024, img_main.shape[1]))
+    #img_display is resized to 1024 width, to be annotated with patch colors
+    img_display = img_main.copy()
+    img_display = imutils.resize(img_display, width=min(1024, img_main.shape[1]))
 
-    squares_img = np.zeros(display_img.shape,np.uint8)
+    #img_squares is the size of img_display, and contains the category color squares to draw on top of it
+    img_squares = np.zeros(img_display.shape,np.uint8)
 
-    prediction_list = []
+    prediction_list_weighted = []
     prediction_list_raw = []
 
     img_width = img_gray.shape[1]
@@ -117,10 +123,10 @@ for img_id,imagePath in enumerate(image_paths):
     pbar = progressbar.ProgressBar(maxval = patch_length,widgets=widgets).start()
 
     # All score totals including h/s calculations
-    patch_totals = np.zeros(shape=(patch_width,patch_height,5))
+    patch_totals_weighted = np.zeros(shape=(patch_width,patch_height,5))
 
     # Score totals only using bovw scores
-    patch_predictions = np.zeros(shape=(patch_width,patch_height,5))
+    patch_totals_raw = np.zeros(shape=(patch_width,patch_height,5))
 
     for (patch_id,(x,y,window_gray,window_hsv)) in enumerate(sliding_window_double(img_gray,img_hsv,stepSize=patch_size,windowSize=(win_size,win_size))):
         # Find x and y position in the patch grid
@@ -159,9 +165,8 @@ for img_id,imagePath in enumerate(image_paths):
             hist *= idf
 
         # Get prediction probabilities based on gray patch
-        prediction = model.predict_proba(hist)[0]
-
-        prediction_weighted = np.copy(prediction)
+        prediction_raw = model.predict_proba(hist)[0]
+        prediction_weighted = np.copy(prediction_raw)
 
         # Extract hue and sat histograms
         (h,s,v) = cv2.split(window_hsv)
@@ -208,8 +213,8 @@ for img_id,imagePath in enumerate(image_paths):
             ny = patch_y + dy[i]
             if nx >= patch_width or ny >= patch_height:
                 continue
-            patch_totals[nx,ny] += prediction_weighted
-            patch_predictions[nx,ny] += prediction
+            patch_totals_weighted[nx,ny] += prediction_weighted
+            patch_totals_raw[nx,ny] += prediction_raw
 
         pbar.update(patch_id)
         
@@ -221,33 +226,34 @@ for img_id,imagePath in enumerate(image_paths):
         patch_y = i // patch_width
         pixel_x = patch_x * patch_size
         pixel_y = patch_y * patch_size
-        id = np.argmax(patch_totals[patch_x,patch_y])
-        prediction_list.append(patch_totals[patch_x,patch_y])
-        prediction_list_raw.append(patch_predictions[patch_x,patch_y])
-        cv2.rectangle(squares_img,(pixel_x,pixel_y),(pixel_x + win_size,pixel_y + win_size),category_colors[id],-1)
+        id = np.argmax(patch_totals_weighted[patch_x,patch_y])
+        prediction_list_weighted.append(patch_totals_weighted[patch_x,patch_y])
+        prediction_list_raw.append(patch_totals_raw[patch_x,patch_y])
+        cv2.rectangle(img_squares,(pixel_x,pixel_y),(pixel_x + win_size,pixel_y + win_size),category_colors[id],-1)
 
     # Draw the category colors onto the image
-    #cv2.addWeighted(squares_img,0.5,display_img,0.5,0,display_img)
+    #cv2.addWeighted(img_squares,0.5,img_display,0.5,0,img_display)
 
-    squares_img_hsv = cv2.cvtColor(squares_img,cv2.COLOR_BGR2HSV)
-    (sh,ss,sv) = cv2.split(squares_img_hsv)
+    img_squares_hsv = cv2.cvtColor(img_squares,cv2.COLOR_BGR2HSV)
+    (sh,ss,sv) = cv2.split(img_squares_hsv)
 
     (imh,ims,imv) = cv2.split(img_hsv)
 
-    display_img = cv2.merge((sh,ss,imv))
-    display_img = cv2.cvtColor(display_img,cv2.COLOR_HSV2BGR)
+    img_display = cv2.merge((sh,ss,imv))
+    img_display = cv2.cvtColor(img_display,cv2.COLOR_HSV2BGR)
 
     # Display the image to the user
-    #cv2.imshow("window",display_img)
-    #cv2.waitKey(0)
+    if flag_display:
+        cv2.imshow("Localization",img_display)
+        cv2.waitKey(0)
 
     # Write the images and text file output
-    cv2.imwrite("output/localization/" + name + ".png",display_img)
-    cv2.imwrite("output/localization_color/" + name + '.png',squares_img)
-    with open("output/localization/" + name + ".txt",'w') as f:
-        for line in prediction_list:
+    cv2.imwrite("output/localization/" + name + ".png",img_display)
+    cv2.imwrite("output/localization_annotations/" + name + '.png',img_squares)
+    with open("output/localization_probs_weighted/" + name + ".txt",'w') as f:
+        for line in prediction_list_weighted:
             f.write(np.array2string(line) + "\n")
-    with open("output/localization_raw/" + name + ".txt",'w') as f:
+    with open("output/localization_probs_raw/" + name + ".txt",'w') as f:
         for line in prediction_list_raw:
             f.write(np.array2string(line) + "\n")
     

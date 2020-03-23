@@ -144,24 +144,10 @@ test_labels = np.asarray(test_labels)
 
 print(classification_report(test_labels, predictions))
 
-f = open('model_lbp4.cpickle', "wb")
+f = open('model/model_lbp4.cpickle', "wb")
 f.write(pickle.dumps(model4))
 f.close()
 
-f = open('model_lbp8.cpickle', "wb")
+f = open('model/model_lbp8.cpickle', "wb")
 f.write(pickle.dumps(model8))
 f.close()
-
-#for imagePath in paths.list_images(args["testing"]):
-    # load the image, convert it to grayscale, describe it,
-    # and classify it
- #   image = cv2.imread(imagePath)
-#    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-#    hist = desc.describe(gray)
-#    prediction = model.predict(hist.reshape(1, -1))
-	
-    # display the image and the prediction
-#    cv2.putText(image, prediction[0], (10, 30), cv2.FONT_HERSHEY_SIMPLEX,
-#		1.0, (0, 0, 255), 3)
-#    cv2.imshow("Image", image)
-#    cv2.waitKey(0)
