@@ -3,15 +3,14 @@ Material Detection and Localization
 
 Performs material localization in images taken from demolition site drone inspection.
 
-The algorithm performs a series of classifications on a sliding window of the photograph, then averages these predictions with some additional heuristics to produce a final classification for each subpatch. 
-
+The system performs a series of classifications on a sliding window of the photograph, then averages these predictions with some additional heuristics to produce a final classification for each subpatch.   
 Patch classification is done primarily using a BOVW algorithm operating on feature descripttions, with heuristics from a comparison of hue and saturation histograms.
 
 Feature Detection uses the GFTT corner detection algorithm
 
 Descriptor Extraction uses the BRISK binary descriptor algorithm.
 
-The primary heuristic adds a simple Local Binary Pattern (LBP) analysis of the patch window, to reduce errors accumulated from non-optimal chosen feature or cluster counts.
+The primary heuristic adds a simple Local Binary Pattern (LBP) analysis of the patch window, to reduce errors accumulated from non-optimal chosen feature or cluster counts.  
 Additional heuristics perform a simple histogram comparison of hue and saturation levels in the patch window compared to the averages for each material. The strength of the hue heuristic is also weighted based on the average saturation strength (i.e. hue will affect the brick category more than the concrete category)
 
 
@@ -60,9 +59,9 @@ Not these are currently not re-normalized, and will almost always be negative, d
 
 ---
 
-Developed For :
-IaaC MRAC19-20 Studio 2
+Developed For :  
+IaaC MRAC19-20 Studio 2  
 Faculty : Aldo Sollazzo, Daniel Serrano
 
-Image Analysis Based on:
+Image Analysis Code Base on:  
 Adrian Rosebrock, 'Content Based Image Retrieval', 'Image Classification and Machine Learning','Local Binary Patterns with Python & OpenCV', PyImageSearch
