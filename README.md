@@ -19,20 +19,29 @@ To Use
 
 ### Environment
 
+This system was tested under Ubuntu 18.04, with Python 3.8, primarily using OpenCV 4.2 and Numpy 1.18  
+Full python enironment is in requirements.txt
+
+Some util scripts also require Processing 3. 
+
+
 
 ### Input Image Processing
 
 The script at util/process_dataset will scan the directories in data/s2g1_dataset_raw, and rename, crop, and resize images as necessary to form an input set for training. It is recomended to add new images to the raw directory and let the script process them rather than processing them by hand.
 
+The script expects the raw directory to contain one directory for each category, with subdirectories therein describing the images source. For instance a photograph the user has taken of a brick wall should be file roughly as so:  
+`dataset_raw/brick/photo/IMG_001.jpg`
+
 ### Setup
 
 To process the input images and train the classifier, run
 
-`./setup_detector`
+`./setup_model`
 
-The script will look for input images in the path data/s2g1_dataset/images, then organized in directories by category name.
+The script will look for input images in the path data/s2g1_dataset/images, organized in directories by category name.
 
-This will take ~30 minutes to run, mostly due to sampling the database during the feature clustering step.
+This may take ~30 minutes to run, mostly due to sampling the database during the feature clustering step.
 
 This will produce several files in the 'model/' folder: 
 
@@ -51,17 +60,17 @@ To perform material localization, run
  
 Ensure the '--images' argument in the call to localize.py is properly set for the folder of images to process. 
 
-Each image takes ~20 seconds to process, at a resolution of 50x50px patches.
+The time to process each image depends on the kernel_size and thus patch_size variables in the localization script. Each classification window is always 100 pixels, so the patch size is determined by dividing 100 by the kernel size. (e.g. the default kernel_size is 4, which leads to a final resolution of classification patches 25px on a side)
 
-This will write images with category colors to the 'output_localization' folder, as well as text files containing the heuristically weighted category scores for each image subpatch. 
+This will write images with category colors overlayed to the 'output/localization' folder, as well as text files containing the heuristically weighted category scores for each image subpatch. 
 
-Not these are currently not re-normalized, and will almost always be negative, due to the way heuristics are applied.
+Not these are currently not re-normalized, and will ofen be negative, due to the way heuristics are applied.
 
 ---
 
 Developed For :  
-IaaC MRAC19-20 Studio 2  
+IaaC MRAC_19-20 Studio 2  
 Faculty : Aldo Sollazzo, Daniel Serrano
 
-Image Analysis Code Base on:  
-Adrian Rosebrock, 'Content Based Image Retrieval', 'Image Classification and Machine Learning','Local Binary Patterns with Python & OpenCV', PyImageSearch
+Image Analysis Code Based on:  
+Adrian Rosebrock, 'Content Based Image Retrieval', 'Image Classification and Machine Learning', 'Local Binary Patterns with Python & OpenCV', PyImageSearch
