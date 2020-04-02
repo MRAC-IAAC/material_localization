@@ -41,6 +41,8 @@ for i in range(kernel_size):
 
 win_size = 100
 patch_size = win_size // kernel_size
+print(win_size)
+print(patch_size)
 
 # Initialize the keypoint detector, local invariant descriptor, and the descriptor
 # pipeline
@@ -74,11 +76,19 @@ desc8 = LocalBinaryPatterns(24,8)
 #category_colors = ((0,0,255),(255,0,0),(0,255,0),(0,255,255),(10,0,10))
 category_colors = ((0,0,255),(255,0,0),(0,255,0),(0,255,255),(0,0,0))
 
+category_names = ("brick","concrete","metal","wood","z_none")
+
+# Whether to scale the input image down to 1024 width
+flag_resize_image = True
+
 # Whether to resize all patches to 364x364. Slows things down immensely, but may be necessary for accuracy?
-flag_resize = False
+flag_resize_patch = False
 
 # Whether to show each image to the user as its localized
 flag_display = False
+
+# Whether to save all the classified subpatches by category
+flag_export_patches = True
 
 
 # === MAIN SCRIPT === 
@@ -93,18 +103,20 @@ for img_id,imagePath in enumerate(image_paths):
     
     # img_main is the original, full size image
     img_main = cv2.imread(imagePath)
+    if flag_resize_image:
+        img_main = imutils.resize(img_main,width=min(1024,img_main.shape[1]))
 
     # img_gray is resized to 1024 width and in grayscale
     img_gray = cv2.cvtColor(img_main, cv2.COLOR_BGR2GRAY)
-    img_gray = imutils.resize(img_gray, width=min(1024, img_main.shape[1]))
+    #img_gray = imutils.resize(img_gray, width=min(1024, img_main.shape[1]))
 
     # img_hsv is resized to 1024 width and hsv space
     img_hsv = cv2.cvtColor(img_main,cv2.COLOR_BGR2HSV)
-    img_hsv = imutils.resize(img_hsv,width = min(1024,img_main.shape[1]))
+    #img_hsv = imutils.resize(img_hsv,width = min(1024,img_main.shape[1]))
 
     #img_display is resized to 1024 width, to be annotated with patch colors
     img_display = img_main.copy()
-    img_display = imutils.resize(img_display, width=min(1024, img_main.shape[1]))
+    #img_display = imutils.resize(img_display, width=min(1024, img_main.shape[1]))
 
     #img_squares is the size of img_display, and contains the category color squares to draw on top of it
     img_squares = np.zeros(img_display.shape,np.uint8)
@@ -134,9 +146,9 @@ for img_id,imagePath in enumerate(image_paths):
         patch_y = patch_id // patch_width
 
         # Ensure patch size
-        if flag_resize:
-            window_gray = imutils.resize(window_gray,width = 364)
-            window_hsv = imutils.resize(window_hsv,width=364)
+        if flag_resize_patch:
+            window_gray = imutils.resize(window_gray,width = 100)
+            window_hsv = imutils.resize(window_hsv,width=100)
 
         # Describe gray patch
         (kps,descs) = dad.describe(window_gray)
@@ -198,17 +210,18 @@ for img_id,imagePath in enumerate(image_paths):
         sat_factor = 1.9
         hue_factor = 0.14
 
-        # Weight prediction
+        # Weight prediction with hue/sat
         prediction_weighted -= sat_diffs * sat_factor
         for i in range(5):
             prediction_weighted[i] -= hue_diffs[i] * hue_factor * sat_total_set[i]
 
+        # Weight prediction with LBP
         prediction_weighted += proba_4
         prediction_weighted += proba_8
 
 
         # Apply window predictions to patches
-        for i in range(9):
+        for i in range(kernel_size * kernel_size):
             nx = patch_x + dx[i]
             ny = patch_y + dy[i]
             if nx >= patch_width or ny >= patch_height:
@@ -230,6 +243,14 @@ for img_id,imagePath in enumerate(image_paths):
         prediction_list_weighted.append(patch_totals_weighted[patch_x,patch_y])
         prediction_list_raw.append(patch_totals_raw[patch_x,patch_y])
         cv2.rectangle(img_squares,(pixel_x,pixel_y),(pixel_x + win_size,pixel_y + win_size),category_colors[id],-1)
+
+        if flag_export_patches and id != 4:
+            output_name = "output/subpatches/{}/{}_{}.png".format(category_names[id],name,i)
+            subpatch = img_main[pixel_x:pixel_x + patch_size,pixel_y :pixel_y + patch_size]
+
+            if subpatch.shape[0] == patch_size and subpatch.shape[1] == patch_size:
+                cv2.imwrite(output_name,subpatch)
+            
 
     # Draw the category colors onto the image
     #cv2.addWeighted(img_squares,0.5,img_display,0.5,0,img_display)
@@ -258,5 +279,6 @@ for img_id,imagePath in enumerate(image_paths):
             f.write(np.array2string(line) + "\n")
     
 end_time = time.time()
+
 
 print("Localization of {} images took {} seconds".format(img_id + 1,int(end_time - start_time)))
