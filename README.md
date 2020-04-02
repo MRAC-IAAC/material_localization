@@ -1,7 +1,7 @@
 Material Detection and Localization
 ===============================================
 
-![Before and After](doc/intput_output.png)
+![alt text](doc/intput_output.png "sample input and output")
 
 Performs material localization in images taken from demolition site drone inspection.
 
@@ -12,8 +12,8 @@ Feature Detection uses the GFTT corner detection algorithm
 
 Descriptor Extraction uses the BRISK binary descriptor algorithm.
 
-![Before and After](doc/diagram_classification.png)
-![Before and After](doc/intput_localization.png)
+![alt text](doc/diagram_classification.png "classification diagram")  
+![alt text](doc/diagram_localization.png "localization diagram")  
 
 The primary heuristic adds a simple Local Binary Pattern (LBP) analysis of the patch window, to reduce errors accumulated from non-optimal chosen feature or cluster counts.  
 Additional heuristics perform a simple histogram comparison of hue and saturation levels in the patch window compared to the averages for each material. The strength of the hue heuristic is also weighted based on the average saturation strength (i.e. hue will affect the brick category more than the concrete category)
