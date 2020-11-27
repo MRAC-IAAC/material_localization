@@ -2,6 +2,8 @@
 
 dataset_path="data/s2g1_dataset/images"
 
+start=`date +%s`
+
 echo ""
 echo "ENSURE ENV ACTIVATION"
 source ~/anaconda3/etc/profile.d/conda.sh
@@ -30,3 +32,8 @@ python src/train_lbp.py --input $dataset_path
 echo ""
 echo "TRAIN BOVW MODEL"
 python src/train_model.py --dataset $dataset_path --features-db model/features.hdf5 --bovw-db model/bovw.hdf5 --model model/model.cpickle
+
+end=`date +%s`
+runtime=$((end-start))
+
+echo "Setup took $runtime seconds"
